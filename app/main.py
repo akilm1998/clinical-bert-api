@@ -17,7 +17,13 @@ async def lifespan(app: FastAPI):
     # On shutdown (optional cleanup)
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    title="Clinical BERT API",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+)
 
 
 @app.post("/predict", response_model=PredictOut)
