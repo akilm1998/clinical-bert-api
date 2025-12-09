@@ -28,7 +28,7 @@ jobs:
             flake8 ./app/
       - run:
           name: Pytest (linting)
-          command: pytest
+          command: python -m pytest
 
   # test:
   #   docker:
