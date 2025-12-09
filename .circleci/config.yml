@@ -16,12 +16,12 @@ jobs:
       - run:
           name: Run Black (format check)
           command: |
-            black --check ./local-run.py
+            black --check ./local_run.py
             black --check ./app/
       - run:
           name: Run Flake8 (linting)
           command: |
-            flake8 ./local-run.py
+            flake8 ./local_run.py
             flake8 ./app/
 
 workflows:
