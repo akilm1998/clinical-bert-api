@@ -1,0 +1,41 @@
+# Python virtual environments
+.venv
+
+# Python cache
+__pycache__
+.pytest_cache
+
+# Git
+.git
+.gitignore
+.dockerignore
+
+# Virtual envs
+.venv
+venv
+env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Git
+.git
+.gitignore
+
+# IDE / editor stuff
+.vscode
+.idea
+
+# OS junk
+.DS_Store
+
+# (Optional) Hugging Face cache dirs, if they are in the project
+.cache
+huggingface
+datasets
+
+# This line is optional; fine if present, fine if removed
+.dockerignore
+
