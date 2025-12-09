@@ -24,7 +24,7 @@
 #     assert "label" in data and "score" in data and "time_ms" in data, f"missing keys in response: {data.keys()}"
 #     assert data["label"] == expected_label, f"label mismatch for `{sentence}`: got {data['label']} expected {expected_label}"
 
-#     # check score 
+#     # check score
 #     assert isinstance(data["score"], float), "score should be float"
 #     assert 0.0 <= data["score"] <= 1.0, f"score out of range: {data['score']}"
 
@@ -45,6 +45,7 @@ TEST_CASES = [
     ("No signs of pneumonia were observed.", "ABSENT"),
 ]
 
+
 @pytest.mark.parametrize("sentence,expected_label", TEST_CASES)
 def test_predict_labels_and_meta(sentence, expected_label):
     """
@@ -53,11 +54,15 @@ def test_predict_labels_and_meta(sentence, expected_label):
     """
     with TestClient(app) as client:
         response = client.post("/predict", json={"sentence": sentence})
-        assert response.status_code == 200, f"unexpected status: {response.status_code} / {response.text}"
+        assert (
+            response.status_code == 200
+        ), f"unexpected status: {response.status_code} / {response.text}"
 
         data = response.json()
         assert "label" in data and "score" in data and "time_ms" in data
-        assert data["label"] == expected_label, f"label mismatch for `{sentence}`: got {data['label']} expected {expected_label}"
+        assert (
+            data["label"] == expected_label
+        ), f"label mismatch for `{sentence}`: got {data['label']} expected {expected_label}"
         assert isinstance(data["score"], float)
         assert 0.0 <= data["score"] <= 1.0
         assert isinstance(data["time_ms"], (float, int)) and data["time_ms"] >= 0

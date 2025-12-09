@@ -6,11 +6,15 @@ from transformers.pipelines import Pipeline
 
 logger = logging.getLogger(__name__)
 
+
 @lru_cache()
-def get_pipeline(device: int = -1) -> Pipeline: # Uses default cpu
+def get_pipeline(device: int = -1) -> Pipeline:  # Uses default cpu
 
     try:
-        logger.info("Loading HF pipeline: bvanaken/clinical-assertion-negation-bert (device=%s)", device)
+        logger.info(
+            "Loading HF pipeline: bvanaken/clinical-assertion-negation-bert (device=%s)",
+            device,
+        )
         p = pipeline(
             "text-classification",
             model="bvanaken/clinical-assertion-negation-bert",
@@ -19,6 +23,6 @@ def get_pipeline(device: int = -1) -> Pipeline: # Uses default cpu
         )
         logger.info("Pipeline loaded successfully")
         return p
-    except Exception as exc:
-        logger.exception("Failed to load HF pipeline")
+    except Exception as e:
+        logger.exception(f"Failed to load HF pipeline, {e}")
         raise

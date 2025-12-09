@@ -41,11 +41,15 @@ def predict(payload: PredictIn):
         return {
             "label": "CONDITIONAL",
             "score": float(model_out["score"]),
-            "time_ms": round(latency_ms, 2)
+            "time_ms": round(latency_ms, 2),
         }
     res = nlp(payload.sentence)[0]  # HuggingFace returns list
     latency_ms = (time.time() - t_start) * 1000
-    return {"label": res["label"], "score": float(res["score"]), "time_ms": round(latency_ms, 2)}
+    return {
+        "label": res["label"],
+        "score": float(res["score"]),
+        "time_ms": round(latency_ms, 2),
+    }
 
 
 @app.get("/health")
