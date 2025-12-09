@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  aws-ecr: circleci/aws-ecr@9.8.1 # https://circleci.com/developer/orbs/orb/circleci/aws-ecr
+
 jobs:
   lint:
     docker:
@@ -24,7 +27,23 @@ jobs:
             flake8 ./local_run.py
             flake8 ./app/
 
+  test:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Install deps
+          command: |
+            pip install pytest
+      - run:
+          name: Run tests
+          command: pytest
+
 workflows:
-  lint-workflow:
+  ci-workflow:
     jobs:
       - lint
+      - test:
+          requires:
+            - lint
