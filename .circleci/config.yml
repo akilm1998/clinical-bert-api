@@ -4,7 +4,7 @@ orbs:
   aws-ecr: circleci/aws-ecr@9.8.1 # https://circleci.com/developer/orbs/orb/circleci/aws-ecr
 
 jobs:
-  lint:
+  lint_and_test:
     docker:
       - image: cimg/python:3.10
     steps:
@@ -14,7 +14,7 @@ jobs:
           name: Install linting tools
           command: |
             python -m pip install --upgrade pip
-            pip install black flake8
+            pip install black flake8 pytest
 
       - run:
           name: Run Black (format check)
@@ -26,24 +26,28 @@ jobs:
           command: |
             flake8 ./local_run.py
             flake8 ./app/
-
-  test:
-    docker:
-      - image: cimg/python:3.10
-    steps:
-      - checkout
       - run:
-          name: Install deps
-          command: |
-            pip install -r requirements.txt
-      - run:
-          name: Run tests
+          name: Pytest (linting)
           command: pytest
+
+  # test:
+  #   docker:
+  #     - image: cimg/python:3.10
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install deps
+  #         command: |
+  #           pip install -r requirements.txt
+  #     - run:
+  #         name: Run tests
+  #         command: pytest
 
 workflows:
   ci-workflow:
     jobs:
-      - lint
-      - test:
-          requires:
-            - lint
+      - lint:
+          name: Lint and Test
+      # - test:
+      #     requires:
+      #       - lint
