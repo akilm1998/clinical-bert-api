@@ -8,3 +8,4 @@ class PredictIn(BaseModel):
 class PredictOut(BaseModel):
     label: str
     score: float
+    time_ms: float

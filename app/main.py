@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 
 from app.model import get_pipeline
 from app.schemas import PredictIn, PredictOut
+import time
 
 nlp = None
 
@@ -28,8 +29,23 @@ app = FastAPI(
 
 @app.post("/predict", response_model=PredictOut)
 def predict(payload: PredictIn):
+    text = payload.sentence.strip()
+
+    t_start = time.time()
+
+    # Rule-based override for conditional sentences
+    if text.lower().startswith("if"):
+        # Run model once to get score (optional)
+        model_out = nlp(text)[0]
+        latency_ms = (time.time() - t_start) * 1000
+        return {
+            "label": "CONDITIONAL",
+            "score": float(model_out["score"]),
+            "time_ms": round(latency_ms, 2)
+        }
     res = nlp(payload.sentence)[0]  # HuggingFace returns list
-    return {"label": res["label"], "score": float(res["score"])}
+    latency_ms = (time.time() - t_start) * 1000
+    return {"label": res["label"], "score": float(res["score"]), "time_ms": round(latency_ms, 2)}
 
 
 @app.get("/health")
