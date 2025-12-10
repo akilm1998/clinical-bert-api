@@ -63,11 +63,6 @@ workflows:
       - assume-role:
           requires: lint-and-test
 
-      # - aws-ecr/build_and_push_image:
-      #     name: build-and-push-ecr-image
-      #     requires:
-      #       - lint-and-test
-
           # auth:
           #   - aws-cli/setup:
           #       profile_name: circleci-oidc-role
