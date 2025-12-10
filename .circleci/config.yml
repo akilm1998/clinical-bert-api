@@ -78,6 +78,7 @@ workflows:
       #       - assume-cicd-role
       - aws-ecr/build_and_push_image:
           name: build-and-push-image
+          account_id: {AWS_ORG_ACCOUNT}
           requires:
             - assume-cicd-role
           auth:
@@ -89,4 +90,6 @@ workflows:
           create_repo: false
           dockerfile: Dockerfile
           path: .
+          context:
+            - aws
       
