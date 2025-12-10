@@ -83,7 +83,7 @@ workflows:
           auth:
             - aws-cli/setup:
                 role_arn: << pipeline.parameters.role_arn >>
-                region: {AWS_ORG_ACCOUNT}
+                region: us-east-1
                 context: 
                   - aws
           repo: artifacts/models
