@@ -41,23 +41,39 @@ jobs:
           name: Pytest (linting)
           command: python -m pytest
 
+  assume-role:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+
+      - aws-cli/setup:
+          role-arn: << parameters.role_arn >>
+          aws-region: us-east-1
+
+      - run:
+          name: Verify identity
+          command: aws sts get-caller-identity
+
 workflows:
   ci-workflow:
     jobs:
       - lint_and_test:
           name: lint-and-test
+      - assume-role:
+          requires: lint_and_test
 
-      - aws-ecr/build_and_push_image:
-          name: build-and-push-ecr-image
-          requires:
-            - lint-and-test
+      # - aws-ecr/build_and_push_image:
+      #     name: build-and-push-ecr-image
+      #     requires:
+      #       - lint-and-test
 
-          auth:
-            - aws-cli/setup:
-                profile_name: circleci-oidc-role
-                role_arn: arn:aws:iam::313078327096:role/circleci-oidc-ecr-role
+          # auth:
+          #   - aws-cli/setup:
+          #       profile_name: circleci-oidc-role
+          #       role_arn: arn:aws:iam::313078327096:role/circleci-oidc-ecr-role
 
-          profile_name: circleci-oidc-role    # must match aws-cli/setup profile_name
-          region: us-east-1
-          repo: "artifacts/models"
-          tag: "${CIRCLE_SHA1}"
+          # profile_name: circleci-oidc-role    # must match aws-cli/setup profile_name
+          # region: us-east-1
+          # repo: "artifacts/models"
+          # tag: "${CIRCLE_SHA1}"
