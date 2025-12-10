@@ -45,12 +45,12 @@ workflows:
   ci-workflow:
     jobs:
       - lint_and_test:
-          name: Lint and Test
+          name: lint-and-test
 
       - aws-ecr/build_and_push_image:
           name: build-and-push-ecr-image
           requires:
-            - lint_and_test
+            - lint-and-test
 
           auth:
             - aws-cli/setup:
