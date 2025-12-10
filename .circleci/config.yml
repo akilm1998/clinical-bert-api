@@ -44,8 +44,8 @@ jobs:
     steps:
       - checkout
       - aws-cli/setup:
-          role-arn: << pipeline.parameters.role_arn >>
-          aws-region: us-east-1
+          role_arn: << pipeline.parameters.role_arn >>
+          region: us-east-1
       - run:
           name: Verify identity
           command: aws sts get-caller-identity
