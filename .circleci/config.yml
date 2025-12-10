@@ -50,6 +50,21 @@ jobs:
           name: Verify identity
           command: aws sts get-caller-identity
 
+  # build_and_push_image:
+  #   docker:
+  #     - image: cimg/base:stable
+  #   steps:
+  #     - checkout
+
+  #     - aws-ecr/build_and_push_image:
+  #         repo: artifacts/models
+  #         region: us-east-1
+  #         role-arn: << pipeline.parameters.role_arn >>
+  #         tag: << pipeline.git.revision >>
+  #         dockerfile: Dockerfile
+  #         path: .
+  #         create-repo: false
+
 workflows:
   ci-workflow:
     jobs:
@@ -58,4 +73,22 @@ workflows:
       - assume-cicd-role:
           requires:
             - lint-and-test
+      # - build_and_push_image:
+      #     requires:
+      #       - assume-cicd-role
+      - aws-ecr/build_and_push_image:
+          name: build-and-push-image
+          requires:
+            - assume-cicd-role
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: {AWS_ORG_ACCOUNT}
+                context: 
+                  - aws
+          repo: artifacts/models
+          tag: dev
+          create_repo: false
+          dockerfile: Dockerfile
+          path: .
       
