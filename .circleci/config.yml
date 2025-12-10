@@ -61,7 +61,7 @@ workflows:
       - lint_and_test:
           name: lint-and-test
       - assume-role:
-          requires: lint_and_test
+          requires: lint-and-test
 
       # - aws-ecr/build_and_push_image:
       #     name: build-and-push-ecr-image
