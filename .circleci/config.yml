@@ -1,7 +1,16 @@
 version: 2.1
 
+setup: true
+
 orbs:
   aws-ecr: circleci/aws-ecr@9.8.1 # https://circleci.com/developer/orbs/orb/circleci/aws-ecr
+  aws-cli: circleci/aws-cli@5.1.2
+
+parameters:
+  role_arn:
+    type: string
+    default: "arn:aws:iam::313078327096:role/circleci-oidc-role"
+    description: "If empty, the job will error and ask you to pass one."
 
 jobs:
   lint_and_test:
@@ -32,24 +41,23 @@ jobs:
           name: Pytest (linting)
           command: python -m pytest
 
-  # test:
-  #   docker:
-  #     - image: cimg/python:3.10
-  #   steps:
-  #     - checkout
-  #     - run:
-  #         name: Install deps
-  #         command: |
-  #           pip install -r requirements.txt
-  #     - run:
-  #         name: Run tests
-  #         command: pytest
-
 workflows:
   ci-workflow:
     jobs:
       - lint_and_test:
           name: Lint and Test
-      # - test:
-      #     requires:
-      #       - lint
+
+      - aws-ecr/build_and_push_image:
+          name: build-and-push-ecr-image
+          requires:
+            - lint_and_test
+
+          auth:
+            - aws-cli/setup:
+                profile_name: circleci-oidc-role
+                role_arn: arn:aws:iam::313078327096:role/circleci-oidc-ecr-role
+
+          profile_name: circleci-oidc-role    # must match aws-cli/setup profile_name
+          region: us-east-1
+          repo: "artifacts/models"
+          tag: "${CIRCLE_SHA1}"
