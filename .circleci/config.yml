@@ -86,6 +86,7 @@ workflows:
                 role_arn: << pipeline.parameters.role_arn >>
                 region: ${AWS_REGION}
           repo: artifacts/models
+          region: ${AWS_REGION}
           tag: dev
           create_repo: false
           dockerfile: Dockerfile
