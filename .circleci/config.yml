@@ -1,9 +1,7 @@
 version: 2.1
 
-setup: true
-
 orbs:
-  aws-ecr: circleci/aws-ecr@9.8.1 # https://circleci.com/developer/orbs/orb/circleci/aws-ecr
+  aws-ecr: circleci/aws-ecr@9.8.1
   aws-cli: circleci/aws-cli@5.1.2
 
 parameters:
@@ -18,7 +16,6 @@ jobs:
       - image: cimg/python:3.10
     steps:
       - checkout
-
       - run:
           name: Install linting tools
           command: |
@@ -26,7 +23,6 @@ jobs:
             pip install --no-cache-dir torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
-
       - run:
           name: Run Black (format check)
           command: |
@@ -40,17 +36,16 @@ jobs:
       - run:
           name: Pytest (linting)
           command: python -m pytest
+    
 
-  assume-role:
+  assume-cicd-role:
     docker:
       - image: cimg/base:stable
     steps:
       - checkout
-
       - aws-cli/setup:
-          role-arn: << parameters.role_arn >>
+          role-arn: << pipeline.parameters.role_arn >>
           aws-region: us-east-1
-
       - run:
           name: Verify identity
           command: aws sts get-caller-identity
@@ -60,15 +55,7 @@ workflows:
     jobs:
       - lint_and_test:
           name: lint-and-test
-      - assume-role:
-          requires: lint-and-test
-
-          # auth:
-          #   - aws-cli/setup:
-          #       profile_name: circleci-oidc-role
-          #       role_arn: arn:aws:iam::313078327096:role/circleci-oidc-ecr-role
-
-          # profile_name: circleci-oidc-role    # must match aws-cli/setup profile_name
-          # region: us-east-1
-          # repo: "artifacts/models"
-          # tag: "${CIRCLE_SHA1}"
+      - assume-cicd-role:
+          requires:
+            - lint-and-test
+      
