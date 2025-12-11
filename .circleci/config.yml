@@ -106,16 +106,18 @@ workflows:
           requires:
             - task-definition-update
 
-      - aws-ecs/run_task:
+      - aws-ecs/deploy_service_update:
           auth:
             - aws-cli/setup:
                 role_arn: << pipeline.parameters.role_arn >>
                 region: ${AWS_REGION}
           cluster: clinical-bert-cluster
-          task_definition: arn:aws:ecs:us-east-1:313078327096:task-definition/clinical-bert-task
-          subnet_ids: "subnet-088a715a2ad5fc822,subnet-0389ba957d1df17bd"
-          # wait_task_stopped: true
+          service_name: clinical-bert-service-fixed
+          family: clinical-bert-task
           region: us-east-1
+          verify_revision_is_deployed: true
+          max_poll_attempts: 50
+          poll_interval: 20
           requires:
             - ecs_service_update_approval
           context:
