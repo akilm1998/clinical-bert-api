@@ -97,7 +97,8 @@ workflows:
           name: aws-auth
           role_arn: << pipeline.parameters.role_arn >>
           region: ${AWS_REGION}
-          requires: build-and-push-image
+          requires: 
+          - build-and-push-image
           context:
             - aws
       - task-definition-update-approval: # This is the approval job
