@@ -70,17 +70,15 @@ workflows:
     jobs:
       - lint_and_test:
           name: lint-and-test
-      - assume-cicd-role:
+      - build_push_approval: # This is the approval job
+          type: approval
           requires:
             - lint-and-test
-      # - build_and_push_image:
-      #     requires:
-      #       - assume-cicd-role
       - aws-ecr/build_and_push_image:
           name: build-and-push-image
           account_id: ${AWS_ORG_ACCOUNT}
           requires:
-            - assume-cicd-role
+            - build_push_approval
           auth:
             - aws-cli/setup:
                 role_arn: << pipeline.parameters.role_arn >>
