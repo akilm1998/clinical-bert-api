@@ -114,7 +114,7 @@ workflows:
           cluster: clinical-bert-cluster
           task_definition: arn:aws:ecs:us-east-1:313078327096:task-definition/clinical-bert-task
           subnet_ids: "subnet-088a715a2ad5fc822,subnet-0389ba957d1df17bd"
-          wait_task_stopped: true
+          # wait_task_stopped: true
           region: us-east-1
           requires:
             - ecs_service_update_approval
