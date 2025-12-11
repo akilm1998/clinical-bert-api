@@ -87,7 +87,7 @@ workflows:
                 region: ${AWS_REGION}
           repo: artifacts/models
           region: ${AWS_REGION}
-          tag: dev
+          tag: ${CIRCLE_SHA1}
           create_repo: false
           dockerfile: Dockerfile
           path: .
