@@ -51,35 +51,20 @@ jobs:
           name: Verify identity
           command: aws sts get-caller-identity
 
-  # build_and_push_image:
-  #   docker:
-  #     - image: cimg/base:stable
-  #   steps:
-  #     - checkout
-
-  #     - aws-ecr/build_and_push_image:
-  #         repo: artifacts/models
-  #         region: us-east-1
-  #         role-arn: << pipeline.parameters.role_arn >>
-  #         tag: << pipeline.git.revision >>
-  #         dockerfile: Dockerfile
-  #         path: .
-  #         create-repo: false
-
 workflows:
   ci-workflow:
     jobs:
       - lint_and_test:
           name: lint-and-test
+
       - build_push_approval: # This is the approval job
           type: approval
           requires:
             - lint-and-test
+
       - aws-ecr/build_and_push_image:
           name: build-and-push-image
           account_id: ${AWS_ORG_ACCOUNT}
-          requires:
-            - build_push_approval
           auth:
             - aws-cli/setup:
                 role_arn: << pipeline.parameters.role_arn >>
@@ -91,37 +76,49 @@ workflows:
           create_repo: false
           dockerfile: Dockerfile
           path: .
+          requires:
+            - build_push_approval
           context:
             - aws
-      - aws-cli/setup:
-          name: aws-auth
-          role_arn: << pipeline.parameters.role_arn >>
-          region: ${AWS_REGION}
-          requires: 
-          - build-and-push-image
-          context:
-            - aws
+
       - task-definition-update-approval: # This is the approval job
           type: approval
           requires:
-            - aws-auth
+            - build-and-push-image
+
       - aws-ecs/update_task_definition:
           name: task-definition-update
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
           family: clinical-bert-task
           region: us-east-1
           container_image_name_updates: >
-            container=clinical-bert-task,image-and-tag=313078327096.dkr.ecr.us-east-1.amazonaws.com/artifacts/models:${CIRCLE_SHA1}
+            container=clinical-bert-task,image-and-tag=${AWS_ORG_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/artifacts/models:${CIRCLE_SHA1}
           requires:
             - task-definition-update-approval
+          context:
+            - aws
+
       - ecs_service_update_approval: # This is the approval job
           type: approval
           requires:
-            - aws-auth
+            - task-definition-update
+
       - aws-ecs/update_service:
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
           cluster: clinical-bert-cluster
-          service_name: clinical-bert-service-fixed
-          family: clinical-bert-task
+          task_definition: arn:aws:ecs:us-east-1:313078327096:task-definition/clinical-bert-task
+          wait_task_stopped: true
           region: us-east-1
           requires:
             - ecs_service_update_approval
+          context:
+            - aws
+
+
 
