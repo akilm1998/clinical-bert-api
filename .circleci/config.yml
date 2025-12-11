@@ -116,6 +116,7 @@ workflows:
           family: clinical-bert-task
           region: us-east-1
           verify_revision_is_deployed: true
+          desired_count: '1'
           max_poll_attempts: 50
           poll_interval: 20
           requires:
