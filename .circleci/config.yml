@@ -3,6 +3,7 @@ version: 2.1
 orbs:
   aws-ecr: circleci/aws-ecr@9.8.1
   aws-cli: circleci/aws-cli@5.4.1
+  aws-ecs: circleci/aws-ecs@7.2.0
 
 parameters:
   role_arn:
@@ -83,8 +84,8 @@ workflows:
             - aws-cli/setup:
                 role_arn: << pipeline.parameters.role_arn >>
                 region: ${AWS_REGION}
-          #repo: artifacts/models
-          repo: clinical-bert-prod/api-models
+          repo: artifacts/models
+          # repo: clinical-bert-prod/api-models
           region: ${AWS_REGION}
           tag: ${CIRCLE_SHA1}
           create_repo: false
@@ -92,4 +93,34 @@ workflows:
           path: .
           context:
             - aws
-      
+      - aws-cli/setup:
+          name: aws-auth
+          role_arn: << pipeline.parameters.role_arn >>
+          region: ${AWS_REGION}
+          requires: build-and-push-image
+          context:
+            - aws
+      - task-definition-update-approval: # This is the approval job
+          type: approval
+          requires:
+            - aws-auth
+      - aws-ecs/update_task_definition:
+          name: task-definition-update
+          family: clinical-bert-task
+          region: us-east-1
+          container_image_name_updates: >
+            container=clinical-bert-task,image-and-tag=313078327096.dkr.ecr.us-east-1.amazonaws.com/artifacts/models:${CIRCLE_SHA1}
+          requires:
+            - task-definition-update-approval
+      - ecs_service_update_approval: # This is the approval job
+          type: approval
+          requires:
+            - aws-auth
+      - aws-ecs/update_service:
+          cluster: clinical-bert-cluster
+          service_name: clinical-bert-service-fixed
+          family: clinical-bert-task
+          region: us-east-1
+          requires:
+            - ecs_service_update_approval
+
