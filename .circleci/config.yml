@@ -52,7 +52,10 @@ jobs:
           command: aws sts get-caller-identity
 
 workflows:
-  ci-workflow:
+  dev-workflow:
+    when:
+      condition:
+        equal: [ "<< pipeline.git.branch >>", "dev" ]
     jobs:
       - lint_and_test:
           name: lint-and-test
@@ -121,6 +124,80 @@ workflows:
           poll_interval: 20
           requires:
             - ecs_service_update_approval
+          context:
+            - aws
+
+  main-workflow:
+    when:
+      condition:
+        equal: [ "<< pipeline.git.branch >>", "main" ]
+    jobs:
+      - lint_and_test:
+          name: lint-and-test-prod
+
+      - build_push_prod_approval: # This is the approval job
+          type: approval
+          requires:
+            - lint-and-test-prod
+
+      - aws-ecr/build_and_push_image:
+          name: build-and-push-image-prod
+          account_id: ${AWS_ORG_ACCOUNT}
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
+          repo: clinical-bert-prod/api-models
+          region: ${AWS_REGION}
+          tag: ${CIRCLE_SHA1}
+          create_repo: false
+          dockerfile: Dockerfile
+          path: .
+          requires:
+            - build_push_prod_approval
+          context:
+            - aws
+
+      - task-definition-update-prod-approval: # This is the approval job
+          type: approval
+          requires:
+            - build-and-push-image-prod
+
+      - aws-ecs/update_task_definition:
+          name: task-definition-update-prod
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
+          family: clinical-bert-task
+          region: us-east-1
+          container_image_name_updates: >
+            container=clinical-bert-task,image-and-tag=${AWS_ORG_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/clinical-bert-prod/api-models:${CIRCLE_SHA1}
+          requires:
+            - task-definition-update-prod-approval
+          context:
+            - aws
+
+      - ecs_service_update_approval-prod: # This is the approval job
+          type: approval
+          requires:
+            - task-definition-update-prod
+
+      - aws-ecs/deploy_service_update: # rolling update
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
+          cluster: clinical-bert-cluster
+          service_name: clinical-bert-prod-service
+          family: cliical-bert-prod-cluster
+          region: us-east-1
+          verify_revision_is_deployed: true
+          desired_count: '1'
+          max_poll_attempts: 50
+          poll_interval: 20
+          requires:
+            - ecs_service_update_approval-prod
           context:
             - aws
 
