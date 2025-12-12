@@ -1,15 +1,9 @@
 version: 2.1
 
 orbs:
-  aws-ecr: circleci/aws-ecr@9.8.1
-  aws-cli: circleci/aws-cli@5.4.1
-  aws-ecs: circleci/aws-ecs@7.2.0
-
-parameters:
-  role_arn:
-    type: string
-    default: "arn:aws:iam::313078327096:role/circleci-oidc-role"
-    description: "If empty, the job will error and ask you to pass one."
+  aws-ecr: circleci/aws-ecr@9.8.1 # https://circleci.com/developer/orbs/orb/circleci/aws-ecr
+  aws-cli: circleci/aws-cli@5.4.1 # https://circleci.com/developer/orbs/orb/circleci/aws-cli
+  aws-ecs: circleci/aws-ecs@7.2.0 # https://circleci.com/developer/orbs/orb/circleci/aws-ecs
 
 jobs:
   lint_and_test:
@@ -45,22 +39,13 @@ jobs:
     steps:
       - checkout
       - aws-cli/setup:
-          role_arn: << pipeline.parameters.role_arn >>
+          role_arn: arn:aws:iam::${AWS_ORG_ACCOUNT}:role/circleci-oidc-role
           region: us-east-1
       - run:
           name: Verify identity
           command: aws sts get-caller-identity
 
 workflows:
-
-  # pr-workflow:
-  #   filters:
-  #     github:
-  #       only:
-  #         - pull_request
-  #   jobs:
-  #     - lint_and_test:
-  #         name: lint-and-test-pr
 
   dev-workflow:
     when:
@@ -80,7 +65,7 @@ workflows:
           account_id: ${AWS_ORG_ACCOUNT}
           auth:
             - aws-cli/setup:
-                role_arn: << pipeline.parameters.role_arn >>
+                role_arn: arn:aws:iam::${AWS_ORG_ACCOUNT}:role/circleci-oidc-role
                 region: ${AWS_REGION}
           repo: artifacts/models
           # repo: clinical-bert-prod/api-models
@@ -155,7 +140,7 @@ workflows:
           account_id: ${AWS_ORG_ACCOUNT}
           auth:
             - aws-cli/setup:
-                role_arn: << pipeline.parameters.role_arn >>
+                role_arn: arn:aws:iam::${AWS_ORG_ACCOUNT}:role/circleci-oidc-role
                 region: ${AWS_REGION}
           repo: clinical-bert-prod/api-models
           region: ${AWS_REGION}
@@ -177,12 +162,12 @@ workflows:
           name: task-definition-update-prod
           auth:
             - aws-cli/setup:
-                role_arn: << pipeline.parameters.role_arn >>
+                role_arn: arn:aws:iam::${AWS_ORG_ACCOUNT}:role/circleci-oidc-role
                 region: ${AWS_REGION}
           family: clinical-bert-prod-task
           region: us-east-1
           container_image_name_updates: >
-            container=clinical-bert-task,image-and-tag=${AWS_ORG_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/clinical-bert-prod/api-models:${CIRCLE_SHA1}
+            container=clinical-bert-prod-task,image-and-tag=${AWS_ORG_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/clinical-bert-prod/api-models:${CIRCLE_SHA1}
           requires:
             - task-definition-update-prod-approval
           context:
@@ -196,11 +181,11 @@ workflows:
       - aws-ecs/deploy_service_update: # rolling update
           auth:
             - aws-cli/setup:
-                role_arn: << pipeline.parameters.role_arn >>
+                role_arn: arn:aws:iam::${AWS_ORG_ACCOUNT}:role/circleci-oidc-role
                 region: ${AWS_REGION}
-          cluster: clinical-bert-cluster
+          cluster: clinical-bert-prod-cluster
           service_name: clinical-bert-prod-service
-          family: cliical-bert-prod-cluster
+          family: cliical-bert-prod-task
           region: us-east-1
           verify_revision_is_deployed: true
           desired_count: '1'
