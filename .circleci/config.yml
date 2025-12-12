@@ -67,7 +67,6 @@ workflows:
                 role_arn: arn:aws:iam::${AWS_ORG_ACCOUNT}:role/circleci-oidc-role
                 region: ${AWS_REGION}
           repo: artifacts/models
-          # repo: clinical-bert-prod/api-models
           region: ${AWS_REGION}
           tag: ${CIRCLE_SHA1}
           create_repo: false
