@@ -1,0 +1,215 @@
+version: 2.1
+
+orbs:
+  aws-ecr: circleci/aws-ecr@9.8.1
+  aws-cli: circleci/aws-cli@5.4.1
+  aws-ecs: circleci/aws-ecs@7.2.0
+
+parameters:
+  role_arn:
+    type: string
+    default: "arn:aws:iam::313078327096:role/circleci-oidc-role"
+    description: "If empty, the job will error and ask you to pass one."
+
+jobs:
+  lint_and_test:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Install linting tools
+          command: |
+            python -m pip install --upgrade pip
+            pip install --no-cache-dir torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu
+            pip install -r requirements.txt
+            pip install -r requirements-dev.txt
+      - run:
+          name: Run Black (format check)
+          command: |
+            black --check ./local_run.py
+            black --check ./app/
+      - run:
+          name: Run Flake8 (linting)
+          command: |
+            flake8 ./local_run.py
+            flake8 ./app/
+      - run:
+          name: Pytest (linting)
+          command: python -m pytest
+    
+
+  assume-cicd-role:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - aws-cli/setup:
+          role_arn: << pipeline.parameters.role_arn >>
+          region: us-east-1
+      - run:
+          name: Verify identity
+          command: aws sts get-caller-identity
+
+workflows:
+
+  # pr-workflow:
+  #   filters:
+  #     github:
+  #       only:
+  #         - pull_request
+  #   jobs:
+  #     - lint_and_test:
+  #         name: lint-and-test-pr
+
+  dev-workflow:
+    when:
+      and:
+        - equal: [ "dev", << pipeline.git.branch >> ]
+    jobs:
+      - lint_and_test:
+          name: lint-and-test
+
+      - build_push_approval: # This is the approval job
+          type: approval
+          requires:
+            - lint-and-test
+
+      - aws-ecr/build_and_push_image:
+          name: build-and-push-image
+          account_id: ${AWS_ORG_ACCOUNT}
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
+          repo: artifacts/models
+          # repo: clinical-bert-prod/api-models
+          region: ${AWS_REGION}
+          tag: ${CIRCLE_SHA1}
+          create_repo: false
+          dockerfile: Dockerfile
+          path: .
+          requires:
+            - build_push_approval
+          context:
+            - aws
+
+      - task-definition-update-approval: # This is the approval job
+          type: approval
+          requires:
+            - build-and-push-image
+
+      - aws-ecs/update_task_definition:
+          name: task-definition-update
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
+          family: clinical-bert-task
+          region: us-east-1
+          container_image_name_updates: >
+            container=clinical-bert-task,image-and-tag=${AWS_ORG_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/artifacts/models:${CIRCLE_SHA1}
+          requires:
+            - task-definition-update-approval
+          context:
+            - aws
+
+      - ecs_service_update_approval: # This is the approval job
+          type: approval
+          requires:
+            - task-definition-update
+
+      - aws-ecs/deploy_service_update:
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
+          cluster: clinical-bert-cluster
+          service_name: clinical-bert-service-fixed
+          family: clinical-bert-task
+          region: us-east-1
+          verify_revision_is_deployed: true
+          desired_count: '1'
+          max_poll_attempts: 50
+          poll_interval: 20
+          requires:
+            - ecs_service_update_approval
+          context:
+            - aws
+
+  main-workflow:
+    when:
+      and:
+        - equal: [ "main", << pipeline.git.branch >> ]
+    jobs:
+      - lint_and_test:
+          name: lint-and-test-prod
+
+      - build_push_prod_approval: # This is the approval job
+          type: approval
+          requires:
+            - lint-and-test-prod
+
+      - aws-ecr/build_and_push_image:
+          name: build-and-push-image-prod
+          account_id: ${AWS_ORG_ACCOUNT}
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
+          repo: clinical-bert-prod/api-models
+          region: ${AWS_REGION}
+          tag: ${CIRCLE_SHA1}
+          create_repo: false
+          dockerfile: Dockerfile
+          path: .
+          requires:
+            - build_push_prod_approval
+          context:
+            - aws
+
+      - task-definition-update-prod-approval: # This is the approval job
+          type: approval
+          requires:
+            - build-and-push-image-prod
+
+      - aws-ecs/update_task_definition:
+          name: task-definition-update-prod
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
+          family: clinical-bert-prod-task
+          region: us-east-1
+          container_image_name_updates: >
+            container=clinical-bert-task,image-and-tag=${AWS_ORG_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/clinical-bert-prod/api-models:${CIRCLE_SHA1}
+          requires:
+            - task-definition-update-prod-approval
+          context:
+            - aws
+
+      - ecs_service_update_approval-prod: # This is the approval job
+          type: approval
+          requires:
+            - task-definition-update-prod
+
+      - aws-ecs/deploy_service_update: # rolling update
+          auth:
+            - aws-cli/setup:
+                role_arn: << pipeline.parameters.role_arn >>
+                region: ${AWS_REGION}
+          cluster: clinical-bert-cluster
+          service_name: clinical-bert-prod-service
+          family: cliical-bert-prod-cluster
+          region: us-east-1
+          verify_revision_is_deployed: true
+          desired_count: '1'
+          max_poll_attempts: 50
+          poll_interval: 20
+          requires:
+            - ecs_service_update_approval-prod
+          context:
+            - aws
+
+
+
