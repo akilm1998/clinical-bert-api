@@ -98,9 +98,8 @@ Rotate and review: periodically review attached policies and rotate/adjust permi
 
 Example CircleCI context variables to create
 Create a CircleCI context named aws and set:
-
 AWS_REGION
-AWS_ORG_ACCOUNT 
+AWS_ORG_ACCOUNT
 
 
 

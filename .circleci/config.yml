@@ -46,7 +46,6 @@ jobs:
           command: aws sts get-caller-identity
 
 workflows:
-
   dev-workflow:
     when:
       and:
