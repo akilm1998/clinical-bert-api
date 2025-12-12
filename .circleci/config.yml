@@ -10,6 +10,9 @@ parameters:
     type: string
     default: "arn:aws:iam::313078327096:role/circleci-oidc-role"
     description: "If empty, the job will error and ask you to pass one."
+  is_pr:
+    type: boolean
+    default: << pipeline.trigger_parameters.pull_request >>
 
 jobs:
   lint_and_test:
@@ -53,18 +56,17 @@ jobs:
 
 workflows:
 
-  # pr-workflow:
-  #   filters:
-  #     github:
-  #       only:
-  #         - pull_request
-  #   jobs:
-  #     - lint_and_test:
-  #         name: lint-and-test-pr
+  pr-workflow:
+    when: << pipeline.parameters.is_pr >>
+    jobs:
+      - lint_and_test:
+          name: lint-and-test-pr
 
   dev-workflow:
     when:
       and:
+        - not:
+            equal: [ << pipeline.parameters.is_pr >>, true ]
         - equal: [ "dev", << pipeline.git.branch >> ]
     jobs:
       - lint_and_test:
@@ -140,6 +142,8 @@ workflows:
   main-workflow:
     when:
       and:
+        - not:
+            equal: [ << pipeline.parameters.is_pr >>, true ]
         - equal: [ "main", << pipeline.git.branch >> ]
     jobs:
       - lint_and_test:
