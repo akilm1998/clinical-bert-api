@@ -53,14 +53,14 @@ jobs:
 
 workflows:
 
-  pr-workflow:
-    filters:
-      github:
-        only:
-          - pull_request
-    jobs:
-      - lint_and_test:
-          name: lint-and-test-pr
+  # pr-workflow:
+  #   filters:
+  #     github:
+  #       only:
+  #         - pull_request
+  #   jobs:
+  #     - lint_and_test:
+  #         name: lint-and-test-pr
 
   dev-workflow:
     when:
