@@ -18,6 +18,10 @@ Production-ready FastAPI service exposing a ClinicalBERT-based model for asserti
 - Fully reproducible, deterministic Docker environment 
 
 ---
+## Model loading & caching (loaded once at startup)
+
+To keep inference fast and avoid re-loading the heavy ClinicalBERT model for every request, the model is **loaded once at process startup** and reused for all incoming requests. This both reduces latency and prevents excessive memory/CPU churn when the API receives concurrent requests. Here we use **lru_cache**
+---
 
 ## About CI/CD (CircleCI)
 
@@ -57,7 +61,7 @@ Use this pattern to trust CircleCI's OIDC provider and restrict which `sub` or `
     }
   ]
 }
-Note: tighten Condition to the specific repo or branch pattern you want to allow. Do not leave it open to all repos unless intentionally desired.
+```
 
 CircleCI contexts & environment variables (recommended)
 Store configuration values and secrets in CircleCI Contexts (team-level protected variables). Example variables you should set in a secure context (e.g., aws):
@@ -94,32 +98,8 @@ Rotate and review: periodically review attached policies and rotate/adjust permi
 
 Example CircleCI context variables to create
 Create a CircleCI context named aws and set:
-
-AWS_REGION=us-east-1
-
-AWS_ORG_ACCOUNT=313078327096
-
-ROLE_ARN=arn:aws:iam::313078327096:role/circleci-oidc-role
-
-ECR_REPO=artifacts/models
-
-Then reference the context in the pipeline jobs that require AWS access:
-
-yaml
-Copy code
-context:
-  - aws
-If you want, I can:
-
-Generate a tight IAM policy JSON for the OIDC role covering only the permissions your pipeline needs, or
-
-Produce a step-by-step guide (console + CLI commands) to create the IAM role + trust policy for CircleCI OIDC and show how to add the CircleCI context variables.
-
-Say “generate IAM policy” or “generate OIDC setup steps” and I’ll output the exact JSON and commands.
-
-Copy code
-
-
+AWS_REGION
+AWS_ORG_ACCOUNT
 
 
 
