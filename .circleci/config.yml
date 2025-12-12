@@ -183,7 +183,7 @@ workflows:
                 region: ${AWS_REGION}
           cluster: clinical-bert-prod-cluster
           service_name: clinical-bert-prod-service
-          family: cliical-bert-prod-task
+          family: clinical-bert-prod-task
           region: us-east-1
           verify_revision_is_deployed: true
           desired_count: '1'
