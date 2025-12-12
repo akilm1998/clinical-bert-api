@@ -53,18 +53,18 @@ jobs:
 
 workflows:
 
-  pr-workflow:
-    when:
-      equal: [ "<< pipeline.event.name >>", "pull_request" ]
-    jobs:
-      - lint_and_test:
-          name: lint-and-test-pr
+  # pr-workflow:
+  #   filters:
+  #     github:
+  #       only:
+  #         - pull_request
+  #   jobs:
+  #     - lint_and_test:
+  #         name: lint-and-test-pr
 
   dev-workflow:
     when:
       and:
-        - not:
-            equal: [ "<< pipeline.event.name >>", "pull_request" ]
         - equal: [ "dev", << pipeline.git.branch >> ]
     jobs:
       - lint_and_test:
@@ -140,8 +140,6 @@ workflows:
   main-workflow:
     when:
       and:
-        - not:
-            equal: [ "<< pipeline.event.name >>", "pull_request" ]
         - equal: [ "main", << pipeline.git.branch >> ]
     jobs:
       - lint_and_test:
